@@ -1,26 +1,66 @@
 import os
-
+import random
+import aioredis
+import d20
 import discord
+import motor.motor_asyncio
+from aiohttp import ClientOSError, ClientResponseError
+from discord.errors import Forbidden, HTTPException, InvalidArgument, NotFound
+from discord.ext import commands
+from discord.ext.commands.errors import CommandInvokeError
 from dotenv import load_dotenv
 
+
 load_dotenv()
-TOKEN = "NzU2NDQ3Njc2MTY5NDUzNjAw.X2R-zA.EsccrfkV4GcsaI_EssyPA6a0RrM"
+TOKEN = "test"
 GUILD = os.getenv("Adi's Souffle")
 
-client = discord.Client()
+description = 'DnD Bot v0.1'
 
-@client.event
+bot = commands.Bot(command_prefix='?', description=description)
+
+@bot.event
 async def on_ready():
-    for guild in client.guilds:
-        if guild.name == GUILD:
-            break
+    print(f'{bot.user.name} has connected to Discord!')
 
-    print(
-        f'{client.user} is connected to the following guild:\n'
-        f'{guild.name}(id: {guild.id})\n'
+@bot.event
+async def on_member_join(member):
+    await member.create_dm()
+    await member.dm_channel.send(
+        f'Hi {member.name}, welcome to my Discord server!'
     )
 
-    members = '\n - '.join([member.name for member in guild.members])
-    print(f'Guild Members:\n - {members}')
+@bot.event
+async def on_message(message):
+    if message.author == bot.user:
+        return
 
-client.run(TOKEN)
+    brooklyn_99_quotes = [
+        'I\'m the human form of the 💯 emoji.',
+        'Bingpot!',
+        (
+            'Cool. Cool cool cool cool cool cool cool, '
+            'no doubt no doubt no doubt no doubt.'
+        ),
+    ]
+
+    if message.content == '99!':
+        response = random.choice(brooklyn_99_quotes)
+        await message.channel.send(response)
+    elif message.content == 'raise-exception':
+        response = 'Command not recognised'
+        await message.channel.send(response)
+        raise discord.DiscordException
+
+
+@bot.event
+async def on_error(event, *args, **kwargs):
+    with open('err.log', 'a') as f:
+        if event == 'on_message':
+            f.write(f'Unhandled message: {args[0]}\n')
+            return "Unhandled Message"
+        else:
+            raise
+
+
+bot.run(TOKEN)
